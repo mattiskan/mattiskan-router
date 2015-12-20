@@ -18,7 +18,12 @@ function translate(requestedHostname){
 };
 
 var router = require('http').createServer(function(req, res) {
-  console.log('['+req.method+'] ' + req.headers.host + req.url);
+  var ip = req.headers['x-forwarded-for'] ||
+      req.connection.remoteAddress ||
+      req.socket.remoteAddress ||
+      req.connection.socket.remoteAddress;
+  
+  console.log(ip + ' - ['+req.method+'] ' + req.headers.host + req.url);
 
   proxy.web(req, res, {
     target: translate(req.headers.host)
