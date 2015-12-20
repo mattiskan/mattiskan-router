@@ -20,8 +20,6 @@ function translate(requestedHostname){
 var router = require('http').createServer(function(req, res) {
   console.log('['+req.method+'] ' + req.headers.host + req.url);
 
-  
-  
   proxy.web(req, res, {
     target: translate(req.headers.host)
   });
@@ -35,9 +33,15 @@ proxy.on('error', function (err, req, res) {
     'Content-Type': 'text/html'
   });
   res.end("<img src='http://i.imgur.com/VD0EDRD.gif'>"+
-          "<h2>Oops</h2>Looks like there's some problems..."+
-          " Feel free to give me a heads up at "+
+          "<h2>Oops</h2>Looks like there's some problems... "+
+          "I have already been notified, but feel free to ping me at: "+
           "<a href='mailto:errors@swagyolo.biz'>errors@swagyolo.biz</a>.");
+
+    mail.send({
+      subject: 'Failing service: ' + req.headers.host,
+      recipient: 'router+error@mattiskan.se',
+      body: '' + err
+    });
 });
 
 process.on('uncaughtException', function(err) {
@@ -45,7 +49,7 @@ process.on('uncaughtException', function(err) {
   console.log("CRITICAL:", err);
 
   mail.send({
-    subject: 'Error in router',
+    subject: 'CRITICAL: UncaughtException in router',
     recipient: 'router+error@mattiskan.se',
     body: '' + err
   });
