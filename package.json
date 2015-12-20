@@ -5,6 +5,7 @@
   "description": "map ports using regex",
   "author": "mattis@mattiskan.se",
   "dependencies": {
-    "http-proxy": "latest"
+    "http-proxy": "latest",
+    "mailgun-send": "latest"
   }
 }
