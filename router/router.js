@@ -8,6 +8,8 @@ var config = JSON.parse(
 mail.config(config.mail);
 
 function translate(requestedHostname){
+  requestedHostname = requestedHostname.toLowerCase();
+  
   for(regex in config.routes) {
     if(new RegExp(regex).test(requestedHostname)){
       return config.routes[regex];
