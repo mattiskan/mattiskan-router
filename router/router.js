@@ -8,7 +8,7 @@ var config = JSON.parse(
 mail.config(config.mail);
 
 function translate(requestedHostname){
-  requestedHostname = requestedHostname.toLowerCase();
+  requestedHostname = (requestedHostname || '').toLowerCase();
   
   for(regex in config.routes) {
     if(new RegExp(regex).test(requestedHostname)){
@@ -32,7 +32,7 @@ var router = require('http').createServer(function(req, res) {
   });
 });
 
-proxy.on('error', function (err, req, res) {
+var errorFunction = function (err, req, res) {
   console.log(err);
   console.log();
   
@@ -49,7 +49,10 @@ proxy.on('error', function (err, req, res) {
       recipient: 'router+error@mattiskan.se',
       body: '' + err
     });
-});
+};
+
+proxy.on('error', errorFunction);
+router.on('error', errorFunction);
 
 process.on('uncaughtException', function(err) {
   //för att det blir lite dålig stäming om redirectservern ligger nere
