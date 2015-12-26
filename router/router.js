@@ -46,7 +46,7 @@ var errorFunction = function (err, req, res) {
 
     mail.send({
       subject: 'Failing service: ' + req.headers.host,
-      recipient: 'router+error@mattiskan.se',
+      recipient: config.notificationAddress,
       body: '' + err
     });
 };
@@ -60,7 +60,7 @@ process.on('uncaughtException', function(err) {
 
   mail.send({
     subject: 'CRITICAL: UncaughtException in router',
-    recipient: 'router+error@mattiskan.se',
+    recipient: config.notificationAddress,
     body: '' + err
   });
 });
