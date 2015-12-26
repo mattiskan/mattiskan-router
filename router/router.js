@@ -28,7 +28,9 @@ var router = require('http').createServer(function(req, res) {
   console.log(ip + ' - ['+req.method+'] ' + req.headers.host + req.url);
 
   proxy.web(req, res, {
-    target: translate(req.headers.host)
+    target: translate(req.headers.host),
+    xfwd: true, // pass clients ip as req.headers['x-forwarded-for']
+    ws: true, // forward websockets
   });
 });
 
