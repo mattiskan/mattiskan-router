@@ -46,11 +46,13 @@ var errorFunction = function (err, req, res) {
           "I have already been notified, but feel free to ping me at: "+
           "<a href='mailto:errors@swagyolo.biz'>errors@swagyolo.biz</a>.");
 
+  if(!req.headers.host.startsWith('stage')){
     mail.send({
       subject: 'Failing service: ' + req.headers.host,
       recipient: config.notificationAddress,
       body: '' + err
     });
+  }
 };
 
 proxy.on('error', errorFunction);
