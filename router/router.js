@@ -69,5 +69,14 @@ process.on('uncaughtException', function(err) {
   });
 });
 
+process.on('SIGTERM', function(){
+  console.log('stopping router...');
+  router.close(function() {
+    console.log('router stopped');
+    process.exit();
+  });
+});
+
+
 router.listen(8080);
 console.log("router started. Using host ip:", process.env.HOST_IP || '172.0.0.1')
