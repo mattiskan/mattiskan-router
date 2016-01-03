@@ -46,13 +46,16 @@ var errorFunction = function (err, req, res) {
           "I have already been notified, but feel free to ping me at: "+
           "<a href='mailto:errors@swagyolo.biz'>errors@swagyolo.biz</a>.");
 
-  if(!req.headers.host.startsWith('stage')){
-    mail.send({
-      subject: 'Failing service: ' + req.headers.host,
-      recipient: config.notificationAddress,
-      body: '' + err
-    });
-  }
+  if(req.headers.host && req.headers.host.startsWith('stage'))
+    return;
+  if(err.code === 'ECONNRESET')
+    return;
+  
+  mail.send({
+    subject: 'Failing service: ' + req.headers.host,
+    recipient: config.notificationAddress,
+    body: '' + err
+  });
 };
 
 proxy.on('error', errorFunction);
@@ -78,5 +81,6 @@ process.on('SIGTERM', function(){
 });
 
 
-router.listen(8080);
-console.log("router started. Using host ip:", process.env.HOST_IP || '172.0.0.1')
+router.listen(8080, function() {
+  console.log("router started. Using host ip:", process.env.HOST_IP || '172.0.0.1')
+});
