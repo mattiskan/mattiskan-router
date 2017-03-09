@@ -10,13 +10,13 @@ mail.config(config.mail);
 function translate(requestedHostname){
   requestedHostname = (requestedHostname || '').toLowerCase();
   
+  // e.g. "$somethig.my_url" : "$HOST:1234"
   for(regex in config.routes) {
     if(new RegExp(regex).test(requestedHostname)){
       return config.routes[regex];
     }
   }
-
-  throw new Error("Unmatched domain: " + requestedHostname);
+  return 404;
 };
 
 var router = require('http').createServer(function(req, res) {
@@ -26,25 +26,31 @@ var router = require('http').createServer(function(req, res) {
       req.connection.socket.remoteAddress;
   
   console.log(ip + ' - ['+req.method+'] ' + req.headers.host + req.url);
+  console.log('    ==> ' + translate(req.headers.host));
+
+  if(translate(req.headers.host) === 404){
+      write404(res);
+      return
+  }
+      
 
   proxy.web(req, res, {
     target: translate(req.headers.host),
     xfwd: true, // pass clients ip as req.headers['x-forwarded-for']
-    ws: true, // forward websockets
+    //ws: true, // forward websockets
   });
 });
 
 var errorFunction = function (err, req, res) {
   console.log(err);
   console.log();
-  
+
   res.writeHead(500, {
     'Content-Type': 'text/html'
   });
   res.end("<img src='http://i.imgur.com/VD0EDRD.gif'>"+
           "<h2>Oops</h2>Looks like there's some problems... "+
-          "I have already been notified, but feel free to ping me at: "+
-          "<a href='mailto:errors@swagyolo.biz'>errors@swagyolo.biz</a>.");
+          "I have already been automatically notified, so there's nothing to do but to wait.");
 
   if(req.headers.host && req.headers.host.startsWith('stage'))
     return;
@@ -53,9 +59,15 @@ var errorFunction = function (err, req, res) {
   
   mail.send({
     subject: 'Failing service: ' + req.headers.host,
-    recipient: config.notificationAddress,
+    recipient: config.notificationEmail,
     body: '' + err
   });
+};
+
+var write404 = function(res) {
+  res.writeHead(404, {'Content-Type': 'text/html'});
+  res.end("<img src='https://media.giphy.com/media/E87jjnSCANThe/giphy.gif'>"+
+          "<h2>404 — I can't find the page you're requesting.</h2>");
 };
 
 proxy.on('error', errorFunction);
@@ -64,7 +76,7 @@ router.on('error', errorFunction);
 process.on('uncaughtException', function(err) {
   //för att det blir lite dålig stäming om redirectservern ligger nere
   console.log("CRITICAL:", err);
-
+  
   mail.send({
     subject: 'CRITICAL: UncaughtException in router',
     recipient: config.notificationAddress,
