@@ -1,0 +1,15 @@
+{
+    "mail": {
+	"key": "key-<your-mailgun-key-here>",
+	"domain":"seder domain",
+	"sender": "no-reply@domain.yours"
+    },
+    "notificationEmail": "where-to-send-errors@email.yours",
+    "routes": {
+	"^stage\\.example.com": "http://$HOST:8081",
+	"^example\\.com$": "http://$HOST:8082",
+	"^stage\\.example2.com": "http://$HOST:8083",
+	"^example2\\.com$": "http://$HOST:8084",
+	"$^": 404
+    }
+}
