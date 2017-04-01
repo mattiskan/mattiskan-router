@@ -44,16 +44,11 @@ var requestHandler = function(req, res) {
   });
 };
 
-var errorFunction = function (err, req, res) {
+var uncaughtErrorFunction = function (err, req, res) {
   console.log(err);
   console.log();
 
-  res.writeHead(500, {
-    'Content-Type': 'text/html'
-  });
-  res.end("<img src='http://gifrific.com/wp-content/uploads/2012/07/blender-explode-home-improvement.gif'>"+
-          "<h2>Oops</h2>Looks like there's some problems... "+
-          "I have already been automatically notified, so there's nothing to do but to wait.");
+    write500(res);
 
   if(req.headers.host && req.headers.host.startsWith('stage'))
     return;
@@ -68,47 +63,60 @@ var errorFunction = function (err, req, res) {
   }); */
 };
 
-var write404 = function(res) {
-  res.writeHead(404, {'Content-Type': 'text/html'});
-  res.end("<img src='https://media.giphy.com/media/E87jjnSCANThe/giphy.gif'>"+
-          "<h2>404 — I can't find the page you're requesting.</h2>");
+var insecureRequestHandler = function(req, res) {
+    try {
+	readCert(req.headers.host);
+	// didn't raise, so there's a cert for this domain. Let's redirect to https.
+	console.log('certificate found for '+req.headers.host+'. Redirecting to https://')
+	res.writeHead(301, { "Location": "https://" + req.headers.host + req.url });
+	res.end();
+    } catch(err){
+	console.log('no redirect because', err);
+	requestHandler(req, res);
+    }
 };
 
-var secureContext = {
-    'swagyolo.biz': {
-	key: fs.readFileSync('router/certs/swagyolo.biz.key'),
-	cert: fs.readFileSync('router/certs/swagyolo.biz.crt'),
-    },
-    'mattiskan.se': {
-	key: fs.readFileSync('router/certs/mattiskan.se.key'),
-	cert: fs.readFileSync('router/certs/mattiskan.se.crt'),
-    },
+
+var write404 = function(res) {
+  res.writeHead(404, {'Content-Type': 'text/html'});
+  fs.readFile('router/templates/404.html', 'utf8', function(err, content) {
+      res.end(content);
+  });
+};
+
+var write500 = function(res) {
+  res.writeHead(500, {'Content-Type': 'text/html'});
+  fs.readFile('router/templates/500.html', 'utf8', function(err, content) {
+      res.end(content);
+  });
+};
+
+var readCert = function(domain) {
+    try {
+	return tls.createSecureContext({
+	    key: fs.readFileSync('router/certs/' + domain + '.key'),
+	    cert: fs.readFileSync('router/certs/'+ domain + '.crt'),		
+	});
+    } catch(err) {
+	throw new Error('Found no matching certificate for domain ' + domain);
+    }
 };
 
 var options = {
     key: fs.readFileSync('router/certs/swagyolo.biz.key'),
     cert: fs.readFileSync('router/certs/swagyolo.biz.crt'),
-    SNICallback: function(domain, cb) {
-        if (secureContext[domain]) {
-            if (cb) {
-                return cb(null, tls.createSecureContext(secureContext[domain]));
-            } else {
-                // compatibility for older versions of node
-                return secureContext[domain]; 
-            }
-        } else {
-            throw new Error('No keys/certificates for domain requested');
-        }
+    SNICallback: function(domain, cb) { // dynamically map domain to the right cert
+	cb(null, readCert(domain));
     },
 };
 
 
-var router = http.createServer(requestHandler);
+var router = http.createServer(insecureRequestHandler);
 var secureRouter = https.createServer(options, requestHandler);
 
-proxy.on('error', errorFunction);
-router.on('error', errorFunction);
-secureRouter.on('error', errorFunction);
+proxy.on('error', uncaughtErrorFunction);
+router.on('error', uncaughtErrorFunction);
+secureRouter.on('error', uncaughtErrorFunction);
 
 process.on('uncaughtException', function(err) {
   //för att det blir lite dålig stäming om redirectservern ligger nere
