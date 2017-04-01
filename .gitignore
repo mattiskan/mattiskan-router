@@ -1,2 +1,4 @@
 *.container
 router/config.json
+router/certs/*
+node_modules/
